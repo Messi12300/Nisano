@@ -274,26 +274,33 @@ async def start(client, message):
             await asyncio.sleep(1) 
         return await sts.delete()
 
-    elif data.split("-", 1)[0] == "verify":
-        userid = data.split("-", 2)[1]
-        token = data.split("-", 3)[2]
-        if str(message.from_user.id) != str(userid):
-            return await message.reply_text(
-                text="<b>Invalid link or Expired link !</b>",
-                protect_content=True
-            )
-        is_valid = await check_token(client, userid, token)
-        if is_valid == True:
-            await message.reply_text(
-                text=f"<b>Hey {message.from_user.mention}, You are successfully verified !\nNow you have unlimited access for all movies till today midnight.</b>",
-                protect_content=True
-            )
-            await verify_user(client, userid, token)
-        else:
-            return await message.reply_text(
-                text="<b>Invalid link or Expired link !</b>",
-                protect_content=True
-            )
+    if SEC_AUTH and not await is_subscribed(client, message):
+        try:
+            invite_link = await client.create_chat_invite_link(int(SEC_AUTH))
+        except ChatAdminRequired:
+            logger.error("Make sure Bot is admin in Forcesub channel")
+            return
+        btn = [
+            [
+                InlineKeyboardButton(
+                    "Jᴏɪɴ Uᴘᴅᴀᴛᴇs Cʜᴀɴɴᴇʟ", url=invite_link.invite_link
+                )
+            ]
+        ]
+
+        if message.command[1] != "subscribe":
+            try:
+                kk, file_id = message.command[1].split("_", 1)
+                pre = 'checksubp' if kk == 'filep' else 'checksub' 
+                btn.append([InlineKeyboardButton(" 🔄 Try Again", callback_data=f"{pre}#{file_id}")])
+            except (IndexError, ValueError):
+                btn.append([InlineKeyboardButton(" 🔄 Try Again", url=f"https://t.me/{temp.U_NAME}?start={message.command[1]}")])
+        await client.send_message(
+            chat_id=message.from_user.id,
+            text="**🌟Jᴏɪɴ Uᴘᴅᴀᴛᴇs Cʜᴀɴɴᴇʟ\n🌟Cᴀᴍᴇ Bᴀᴄᴋ Aɴᴅ Cʟɪᴄᴋ Tʀʏ Aɢᴀɪɴ\n🌟Yᴏᴜ Wɪʟʟ Gᴇᴛ Yᴏᴜʀ Fɪʟᴇs 👍🏻**",
+            reply_markup=InlineKeyboardMarkup(btn),
+            parse_mode=enums.ParseMode.MARKDOWN
+        )
     if data.startswith("sendfiles"):
         chat_id = int("-" + file_id.split("-")[1])
         userid = message.from_user.id if message.from_user else None
